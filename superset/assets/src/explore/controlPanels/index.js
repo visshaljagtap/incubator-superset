@@ -52,6 +52,7 @@ import PairedTtest from './PairedTtest';
 import Para from './Para';
 import Partition from './Partition';
 import Pie from './Pie';
+import PinVisualization from './PinVisualization'
 import PivotTable from './PivotTable';
 import Rose from './Rose';
 import Sankey from './Sankey';
@@ -102,6 +103,7 @@ export const controlPanelConfigs = extraOverrides({
   para: Para,
   partition: Partition,
   pie: Pie,
+  pin_visualization: PinVisualization,
   pivot_table: PivotTable,
   rose: Rose,
   sankey: Sankey,

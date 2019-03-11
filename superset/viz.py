@@ -1746,6 +1746,24 @@ class CountryMapViz(BaseViz):
         d = df.to_dict(orient='records')
         return d
 
+class PinVisualizationViz(BaseViz):
+
+    """Pin Visualization"""
+
+    viz_type = 'pin_visualization'
+    verbose_name = _('Pin Visualization')
+    is_timeseries = False
+    credits = 'NA'
+
+    def query_obj(self):
+        qry = super(PinVisualizationViz, self).query_obj()
+        qry['groupby'] = [u'state_name', u'pincode', u'latitude', u'longitude', u'radius']
+        return qry
+
+    def get_data(self, df):
+        d = df.to_dict(orient='records')
+        return d
+        
 
 class WorldMapViz(BaseViz):
 
