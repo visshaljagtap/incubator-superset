@@ -28,7 +28,7 @@ const propTypes = {
 };
 const UserInfo = ({ user }) => (
   <div>
-    <a href="https://en.gravatar.com/">
+    {/* <a href="https://en.gravatar.com/">
       <Gravatar
         email={user.email}
         width="100%"
@@ -38,7 +38,9 @@ const UserInfo = ({ user }) => (
         className="img-rounded"
         style={{ borderRadius: 15 }}
       />
-    </a>
+    </a> */}
+    <img src="https://yt3.ggpht.com/a-/AAuE7mApt0lHa1xxpCb0TjgtaaRg34_1nmYIyhLtvg=s900-mo-c-c0xffffffff-rj-k-no" width="100%">
+    </img>
     <hr />
     <Panel>
       <h3>

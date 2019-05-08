@@ -16,19 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import VirtualizedSelect from 'react-virtualized-select';
-import { Creatable } from 'react-select';
-import { Button } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-
-import DateFilterControl from '../../explore/components/controls/DateFilterControl';
-import ControlRow from '../../explore/components/ControlRow';
-import Control from '../../explore/components/Control';
-import controls from '../../explore/controls';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { Button } from 'react-bootstrap';
+import { Creatable } from 'react-select';
+import VirtualizedSelect from 'react-virtualized-select';
 import OnPasteSelect from '../../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
+import Control from '../../explore/components/Control';
+import ControlRow from '../../explore/components/ControlRow';
+import DateFilterControl from '../../explore/components/controls/DateFilterControl';
+import controls from '../../explore/controls';
 import './FilterBox.css';
 
 // maps control names to their key in extra_filters
@@ -37,7 +36,7 @@ const TIME_FILTER_MAP = {
   granularity_sqla: '__time_col',
   time_grain_sqla: '__time_grain',
   druid_time_origin: '__time_origin',
-  granularity: '__granularity',
+  granularity: '`__granularity`'
 };
 
 const TIME_RANGE = '__time_range';
@@ -46,22 +45,28 @@ const propTypes = {
   origSelectedValues: PropTypes.object,
   datasource: PropTypes.object.isRequired,
   instantFiltering: PropTypes.bool,
-  filtersFields: PropTypes.arrayOf(PropTypes.shape({
-    field: PropTypes.string,
-    label: PropTypes.string,
-  })),
-  filtersChoices: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.shape({
-    id: PropTypes.string,
-    text: PropTypes.string,
-    filter: PropTypes.string,
-    metric: PropTypes.number,
-  }))),
+  filtersFields: PropTypes.arrayOf(
+    PropTypes.shape({
+      field: PropTypes.string,
+      label: PropTypes.string
+    })
+  ),
+  filtersChoices: PropTypes.objectOf(
+    PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.string,
+        text: PropTypes.string,
+        filter: PropTypes.string,
+        metric: PropTypes.number
+      })
+    )
+  ),
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
   showSqlaTimeGrain: PropTypes.bool,
   showSqlaTimeColumn: PropTypes.bool,
   showDruidTimeGrain: PropTypes.bool,
-  showDruidTimeOrigin: PropTypes.bool,
+  showDruidTimeOrigin: PropTypes.bool
 };
 const defaultProps = {
   origSelectedValues: {},
@@ -71,7 +76,7 @@ const defaultProps = {
   showSqlaTimeColumn: false,
   showDruidTimeGrain: false,
   showDruidTimeOrigin: false,
-  instantFiltering: true,
+  instantFiltering: true
 };
 
 class FilterBox extends React.Component {
@@ -79,7 +84,7 @@ class FilterBox extends React.Component {
     super(props);
     this.state = {
       selectedValues: props.origSelectedValues,
-      hasChanged: false,
+      hasChanged: false
     };
     this.changeFilter = this.changeFilter.bind(this);
   }
@@ -90,12 +95,10 @@ class FilterBox extends React.Component {
       name: controlName,
       key: `control-${controlName}`,
       value: selectedValues[TIME_FILTER_MAP[controlName]],
-      actions: { setControlValue: this.changeFilter },
+      actions: { setControlValue: this.changeFilter }
     });
     const mapFunc = control.mapStateToProps;
-    return mapFunc
-      ? Object.assign({}, control, mapFunc(this.props))
-      : control;
+    return mapFunc ? Object.assign({}, control, mapFunc(this.props)) : control;
   }
 
   clickApply() {
@@ -140,7 +143,9 @@ class FilterBox extends React.Component {
               name={TIME_RANGE}
               label={t('Time range')}
               description={t('Select start and end date')}
-              onChange={(...args) => { this.changeFilter(TIME_RANGE, ...args); }}
+              onChange={(...args) => {
+                this.changeFilter(TIME_RANGE, ...args);
+              }}
               value={this.state.selectedValues[TIME_RANGE] || 'No filter'}
             />
           </div>
@@ -155,7 +160,7 @@ class FilterBox extends React.Component {
       showSqlaTimeGrain,
       showSqlaTimeColumn,
       showDruidTimeGrain,
-      showDruidTimeOrigin,
+      showDruidTimeOrigin
     } = this.props;
     const datasourceFilters = [];
     const sqlaFilters = [];
@@ -172,7 +177,7 @@ class FilterBox extends React.Component {
           controls={sqlaFilters.map(control => (
             <Control {...this.getControlData(control)} />
           ))}
-        />,
+        />
       );
     }
     if (druidFilters.length) {
@@ -183,7 +188,7 @@ class FilterBox extends React.Component {
           controls={druidFilters.map(control => (
             <Control {...this.getControlData(control)} />
           ))}
-        />,
+        />
       );
     }
     return datasourceFilters;
@@ -195,8 +200,10 @@ class FilterBox extends React.Component {
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
     Object.keys(selectedValues)
-      .filter(key => selectedValues.hasOwnProperty(key) && (key in filtersChoices))
-      .forEach((key) => {
+      .filter(
+        key => selectedValues.hasOwnProperty(key) && key in filtersChoices
+      )
+      .forEach(key => {
         const choices = filtersChoices[key] || [];
         const choiceIds = new Set(choices.map(f => f.id));
         const selectedValuesForKey = Array.isArray(selectedValues[key])
@@ -204,12 +211,12 @@ class FilterBox extends React.Component {
           : [selectedValues[key]];
         selectedValuesForKey
           .filter(value => !choiceIds.has(value))
-          .forEach((value) => {
+          .forEach(value => {
             choices.unshift({
               filter: key,
               id: value,
               text: value,
-              metric: 0,
+              metric: 0
             });
           });
       });
@@ -234,29 +241,30 @@ class FilterBox extends React.Component {
         multi={filterConfig.multiple}
         clearable={filterConfig.clearable}
         value={value}
-        options={data.map((opt) => {
+        options={data.map(opt => {
           const perc = Math.round((opt.metric / max) * 100);
-          const backgroundImage = (
+          const backgroundImage =
             'linear-gradient(to right, lightgrey, ' +
-            `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
-          );
+            `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`;
           const style = {
             backgroundImage,
-            padding: '2px 5px',
+            padding: '2px 5px'
           };
           return { value: opt.id, label: opt.id, style };
         })}
-        onChange={(...args) => { this.changeFilter(key, ...args); }}
+        onChange={(...args) => {
+          this.changeFilter(key, ...args);
+        }}
         selectComponent={Creatable}
         selectWrap={VirtualizedSelect}
         optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
-      />);
+      />
+    );
   }
 
   renderFilters() {
-
     const { filtersFields } = this.props;
-    return filtersFields.map((filterConfig) => {
+    return filtersFields.map(filterConfig => {
       const { label, key } = filterConfig;
       return (
         <div key={key} className="m-b-5">
@@ -276,7 +284,7 @@ class FilterBox extends React.Component {
           {this.renderDateFilter()}
           {this.renderDatasourceFilters()}
           {this.renderFilters()}
-          {!instantFiltering &&
+          {!instantFiltering && (
             <Button
               bsSize="small"
               bsStyle="primary"
@@ -285,7 +293,7 @@ class FilterBox extends React.Component {
             >
               {t('Apply')}
             </Button>
-          }
+          )}
         </div>
       </div>
     );

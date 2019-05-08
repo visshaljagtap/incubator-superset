@@ -16,39 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.table i {
-  padding-top: 6px;
-}
+export default function transformProps(chartProps) {
+  const {
+    width,
+    height,
+    rawFormData,
+    payload,
+    setControlValue,
+    onAddFilter,
+    setTooltip,
+  } = chartProps;
 
-img.loading {
-  width: 25px;
+  return {
+    formData: rawFormData,
+    payload,
+    setControlValue,
+    viewport: {
+      ...rawFormData.viewport,
+      width,
+      height,
+    },
+    onAddFilter,
+    setTooltip,
+  };
 }
-
-.welcome table {
-    display: none;
-    width: 100%;
-}
-
-input {
-    margin-left: 5px;
-    margin-top: 8px;
-}
-
-.panel-body {
-    overflow: auto;
-}
-
-.cal-heatmap-panel {
-  padding: 20px;
-  background-color: #fff;
-}
-.search input {
-  width: 400px;
-}
-.search-container .fa-search {
-  float: left;
-  margin-left: -25px;
-  margin-top: 12px;
-  font-size: 18px;
-}
-

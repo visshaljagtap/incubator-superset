@@ -21,6 +21,21 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import { saveSvgAsPng, svgAsPngUri, svgAsDataUri } from 'save-svg-as-png';
+import {
+  FacebookShareButton,
+  GooglePlusShareButton,
+  LinkedinShareButton,
+  TwitterShareButton,
+  WhatsappShareButton,
+} from 'react-share';
+import {
+  FacebookIcon,
+  TwitterIcon,
+  WhatsappIcon,
+  GooglePlusIcon,
+  LinkedinIcon,
+} from 'react-share';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -71,6 +86,30 @@ class SliceHeaderControls extends React.PureComponent {
 
     this.state = {
       showControls: false,
+      svgUrl: '',
+      vizTypes: [
+        'pie',
+        'pin_visualization',
+        'histogram',
+        'dist_bar',
+        'chord',
+        'sankey',
+        'world_map',
+        'treemap',
+        'sunburst',
+        'bubble',
+        'line',
+        'area',
+        'box_plot',
+        'country_map',
+        'line_multi',
+        'heatmap',
+        'directed_force',
+        'cal_heatmap',
+        'para',
+        'dual_line',
+        'word_cloud',
+      ],
     };
   }
 
@@ -92,6 +131,67 @@ class SliceHeaderControls extends React.PureComponent {
     this.setState({
       showControls: !this.state.showControls,
     });
+  }
+
+  downlaodViz(id) {
+    console.log('oin saveeeeeeeeee', id);
+
+    var svgId = 'svg_' + id;
+    d3.select('#' + id + ' svg').attr('id', svgId);
+    var svgEl = d3.select('#' + id + ' svg');
+    let file_name = id + '-visualization.png';
+    svgEl = svgEl[0][0];
+    if (svgEl !== null) {
+      saveSvgAsPng(document.getElementById(svgId), file_name, {
+        backgroundColor: 'white',
+      });
+    }
+    // var svgEl = d3.select("#" + id + " svg")
+    // svgEl = svgEl[0][0]
+    // if (svgEl !== null) {
+    //   var name = "viz.svg"
+    //   var svgData = svgEl.outerHTML;
+    //   var preface = '<?xml version="1.0" standalone="no"?>\r\n';
+    //   var svgBlob = new Blob([preface, svgData], { type: "image/svg+xml;charset=utf-8" });
+    //   var svgUrl = URL.createObjectURL(svgBlob);
+    //   var downloadLink = document.createElement("a");
+    //   downloadLink.href = svgUrl;
+    //   downloadLink.download = name;
+    //   document.body.appendChild(downloadLink);
+    //   downloadLink.click();
+    //   document.body.removeChild(downloadLink);
+    // }
+  }
+
+  shareViz(id) {
+    var svgId = 'svg_' + id;
+    var svgEl = d3.select('#' + id + ' svg').attr('id', svgId);
+    let currentThis = this;
+    console.log(svgEl);
+    if (svgEl[0][0] !== null) {
+      svgAsPngUri(
+        document.getElementById(svgId),
+        { backgroundColor: 'white' },
+        function(uri) {
+          $.ajax({
+            type: 'POST',
+            url: `/superset/save_viz_image/`,
+            data: {
+              data: uri,
+            },
+            success: svgUrl => {
+              console.log('url--->', svgUrl);
+              currentThis.setState({
+                svgUrl,
+              });
+            },
+            error: err => {
+              console.log('error--->', err);
+            },
+          });
+        },
+      );
+    }
   }
 
   render() {
@@ -126,6 +226,42 @@ class SliceHeaderControls extends React.PureComponent {
             <MenuItem onClick={this.toggleExpandSlice}>
               {t('Toggle chart description')}
             </MenuItem>
+          )}
+
+          {this.state.vizTypes.includes(slice.viz_type) && (
+            <div>
+              <MenuItem
+                onClick={() => {
+                  this.downlaodViz(`chart-id-${slice.slice_id}`);
+                }}
+              >
+                {t('Download')}
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  this.shareViz(`chart-id-${slice.slice_id}`);
+                }}
+              >
+                {t('Share')}
+                <div style={{ display: 'flex' }}>
+                  <WhatsappShareButton url={this.state.svgUrl}>
+                    <WhatsappIcon size={28} round />
+                  </WhatsappShareButton>
+                  <FacebookShareButton url={this.state.svgUrl}>
+                    <FacebookIcon size={28} round />
+                  </FacebookShareButton>
+                  <LinkedinShareButton url={this.state.svgUrl}>
+                    <LinkedinIcon size={28} round />
+                  </LinkedinShareButton>
+                  <GooglePlusShareButton url={this.state.svgUrl}>
+                    <GooglePlusIcon size={28} round />
+                  </GooglePlusShareButton>
+                  <TwitterShareButton url={this.state.svgUrl}>
+                    <TwitterIcon size={28} round />
+                  </TwitterShareButton>
+                </div>
+              </MenuItem>
+            </div>
           )}
 
           {this.props.sliceCanEdit && (

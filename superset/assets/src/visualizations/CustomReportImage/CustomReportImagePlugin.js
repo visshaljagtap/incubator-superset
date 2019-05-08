@@ -16,39 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.table i {
-  padding-top: 6px;
-}
+import { t } from '@superset-ui/translation';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
 
-img.loading {
-  width: 25px;
-}
+const metadata = new ChartMetadata({
+  name: t('Custom Report Image'),
+  description: 'Custom report Image',
+  thumbnail,
+});
 
-.welcome table {
-    display: none;
-    width: 100%;
+export default class CustomReportImagePlugin extends ChartPlugin {
+  constructor() {
+    super({
+      metadata,
+      transformProps,
+      loadChart: () => import('./CustomReportImage.js'),
+    });
+  }
 }
-
-input {
-    margin-left: 5px;
-    margin-top: 8px;
-}
-
-.panel-body {
-    overflow: auto;
-}
-
-.cal-heatmap-panel {
-  padding: 20px;
-  background-color: #fff;
-}
-.search input {
-  width: 400px;
-}
-.search-container .fa-search {
-  float: left;
-  margin-left: -25px;
-  margin-top: 12px;
-  font-size: 18px;
-}
-

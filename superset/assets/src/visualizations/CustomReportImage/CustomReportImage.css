@@ -1,0 +1,23 @@
+.select-container{
+    flex-direction: row;
+    display: flex;
+    justify-content: space-evenly;
+    padding: 20px 4px 30px 4px;
+}
+
+.select-item{
+    width: 300px;
+}
+
+.image-container{
+    flex-direction: row;
+    display: flex;
+    justify-content: space-evenly;
+ }
+
+.image-item{
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+
+}

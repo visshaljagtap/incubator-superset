@@ -46,7 +46,7 @@ export default class Welcome extends React.PureComponent {
           <Tab eventKey={1} title={t('Dashboards')}>
             <Panel>
               <Row>
-                <Col md={8}><h2>{t('Dashboards')}</h2></Col>
+                <Col md={8}><h2>{t('Sahyadri Dashboards')}</h2></Col>
                 <Col md={4}>
                   <FormControl
                     type="text"

@@ -59,6 +59,9 @@ import Sankey from './Sankey';
 import Sunburst from './Sunburst';
 import Separator from './Separator';
 import Table from './Table';
+import CustomTable from './CustomTable';
+import CustomSearch from './CustomSearch';
+import CustomReportImage from './CustomReportImage';
 import TimePivot from './TimePivot';
 import TimeTable from './TimeTable';
 import Treemap from './Treemap';
@@ -110,6 +113,8 @@ export const controlPanelConfigs = extraOverrides({
   separator: Separator,
   sunburst: Sunburst,
   table: Table,
+  custom_search: CustomSearch,
+  custom_report_image: CustomReportImage,
   time_pivot: TimePivot,
   time_table: TimeTable,
   treemap: Treemap,

@@ -75,7 +75,7 @@ export default class Favorites extends React.PureComponent {
   render() {
     return (
       <div>
-        <h3>{t('Dashboards')}</h3>
+        <h3>{t('Sahyadri Dashboards')}</h3>
         {this.renderDashboardTable()}
         <hr />
         <h3>{t('Charts')}</h3>

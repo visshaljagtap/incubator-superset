@@ -23,10 +23,14 @@ import re
 import time
 import traceback
 from urllib import parse
+import base64
+import mysql.connector
 
 from flask import (
     abort, flash, g, Markup, redirect, render_template, request, Response, url_for,
 )
+from flask import jsonify 
+
 from flask_appbuilder import expose, Model, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -90,6 +94,7 @@ if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
         'js_data_mutator',
     ]
 
+BASE_URL = "localhost:9000/"
 
 def get_database_access_error_msg(database_name):
     return __('This view requires the database %(name)s or '
@@ -836,6 +841,109 @@ class Superset(BaseSupersetView):
         datasources = [o.short_data for o in datasources if o.short_data.get('name')]
         datasources = sorted(datasources, key=lambda o: o['name'])
         return self.json_response(datasources)
+
+    @has_access_api
+    @expose('/save_viz_image/', methods=['POST'])
+    def save_viz_image(self):
+        data = request.form.get('data')
+        data = data.split(',')[1]
+        path = "static/assets/images/visualization-share.png"
+        with open("superset/"+ path, "wb") as fh:
+            fh.write(base64.b64decode(data))
+        return BASE_URL + path
+
+    @has_access_api
+    @expose('/get_patient_reports/', methods=['POST'])
+    def get_patient_reports(self):
+        engine = create_engine('mysql://root:vishal123@localhost/sahyadri')
+        connection = engine.connect()
+        patient_name = request.form.get('patient_name')
+        result = connection.execute("SELECT rt.name, rr.report_id FROM sahyadri.patient_details as pd, sahyadri.radiology_report as rr, sahyadri.report_types as rt where pd.prn = rr.patient_prn and rr.report_id = rt.id and pd.name " + "like '"+ patient_name +"%%' group by rt.name, rr.report_id ;")
+        fields = ['label', 'value']
+        return jsonify({'data': [dict(zip(fields, d)) for d in result]})
+
+    @has_access_api
+    @expose('/get_patient_reports_dates/', methods=['POST'])
+    def get_patient_reports_dates(self):
+        engine = create_engine('mysql://root:vishal123@localhost/sahyadri')
+        connection = engine.connect()
+        patient_name = request.form.get('patient_name')
+        report_type = request.form.get('report_type')
+        result = connection.execute("SELECT rr.report_date, rr.report_date as report_date_value FROM sahyadri.patient_details as pd, sahyadri.radiology_report as rr, sahyadri.report_types as rt where pd.prn = rr.patient_prn and rt.id " + "like '"+ report_type +"%%' and rr.report_id = rt.id and pd.name " + "like '"+ patient_name +"%%'")
+        fields = ['label', 'value']
+        return jsonify({'data': [dict(zip(fields, d)) for d in result]})
+
+    @has_access_api
+    @expose('/get_patient_reports_details/', methods=['POST'])
+    def get_patient_reports_details(self):
+        engine = create_engine('mysql://root:vishal123@localhost/sahyadri')
+        connection = engine.connect() 
+        patient_name = request.form.get('patient_name')
+        report_type = request.form.get('report_type')
+        report_dates = request.form.getlist('report_dates[]')
+        final_data = []
+        for date in report_dates:
+            formatted_report_date = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %Z').strftime('%Y-%m-%d %H:%M:%S')
+            result = connection.execute("SELECT rr.report_date, rr.observation, rr.image, rr.x_ray_no, rr.visit FROM sahyadri.patient_details as pd, sahyadri.radiology_report as rr, sahyadri.report_types as rt where pd.prn = rr.patient_prn and rt.id " + "like '" + report_type + "%%' and rr.report_id = rt.id and pd.name " + "like '"+ patient_name +"%%' and rr.report_date = '"+ formatted_report_date +"'")
+            fields = ['report_date', 'observation', 'image', 'XRay No', 'Visit']
+            data = [dict(zip(fields, d)) for d in result]
+            final_data.append(data)
+        return jsonify({'data': final_data})
+
+    @has_access_api
+    @expose('/get_search_results/', methods=['POST'])
+    def get_search_results(self):
+        engine = create_engine('mysql://root:vishal123@localhost/sahyadri')
+        connection = engine.connect()
+        search_type = request.form.get('search_type')
+        search_str = request.form.get('search_string')
+        gender = request.form.get('gender')
+        # if search_type == "M" :
+        #     result = connection.execute("SELECT Patient_Name, count(Patient_Name) FROM discharge_summary WHERE concat(Treatment_given, Chemotherapy, Antibiotics, Antifungals, Antivirals, Transfusion_Support, Advice_on_Discharge, Course_in_the_Hospital, History) LIKE '%%"+ search_str +"%%' group by Patient_Name")
+        # elif search_type == "H":
+        #     result = connection.execute("SELECT Patient_Name, count(Patient_Name) FROM discharge_summary WHERE concat(Diagnosis, Examination, Discussion, Condition_at_Discharge, Course_in_the_Hospital, History) LIKE '%%"+ search_str +"%%' group by Patient_Name")
+        # elif search_type == "P":
+        #     result = connection.execute("SELECT Patient_Name, count(Patient_Name) FROM discharge_summary WHERE concat(Chemotherapy, Course_in_the_Hospital, History) LIKE '%%"+ search_str +"%%' group by Patient_Name")
+        # elif search_type == "T":
+        #     result = connection.execute("SELECT Patient_Name, count(Patient_Name) FROM discharge_summary WHERE concat(Cultures, Radiology_Investigations, Course_in_the_Hospital, History) LIKE '%%"+ search_str +"%%' group by Patient_Name")
+        # else :
+        #     result = connection.execute("SELECT Patient_Name, count(Patient_Name) FROM discharge_summary WHERE concat(Diagnosis, Advice_on_Discharge, Course_in_the_Hospital, History) LIKE '%%"+ search_str +"%%' group by Patient_Name")
+        
+        if gender == "M" :
+            gender_type = "Male"
+        elif gender == "F" :
+            gender_type = "Female" 
+        elif gender == "O" :
+            gender_type = "Other"
+        else :
+            gender_type = ""
+
+        if search_type == "M" :
+            result = connection.execute("select ds.PRN, Patient_Name, Sex, Visit_Date, concat_ws('\n', Treatment_given, Chemotherapy, Antibiotics, Antifungals, Antivirals, Transfusion_Support, Advice_on_Discharge, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
+            + "(SELECT PRN, MAX(Visit_Date) AS vd FROM discharge_summary WHERE Sex " + "LIKE '"+ gender_type +"%%' and concat(Treatment_given, Chemotherapy, Antibiotics, Antifungals, Antivirals, Transfusion_Support, Advice_on_Discharge, Course_in_the_Hospital, History) " 
+            + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd ;")
+        elif search_type == "H":
+            result = connection.execute("select ds.PRN, Patient_Name,  Sex,Visit_Date, concat_ws('\n', Diagnosis, Examination, Discussion, Condition_at_Discharge, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
+            + "(SELECT PRN, MAX(Visit_Date) AS vd FROM discharge_summary WHERE Sex " + "LIKE '"+ gender_type +"%%' and concat(Diagnosis, Examination, Discussion, Condition_at_Discharge, Course_in_the_Hospital, History) " 
+            + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd ;")
+        elif search_type == "P":
+            result = connection.execute("select ds.PRN, Patient_Name, Sex,Visit_Date, concat_ws('\n', Chemotherapy, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
+            + "(SELECT PRN, MAX(Visit_Date) AS vd FROM discharge_summary WHERE Sex " + "LIKE '"+ gender_type +"%%' and concat(Chemotherapy, Course_in_the_Hospital, History) " 
+            + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd ;")
+        elif search_type == "T":
+            result = connection.execute("select ds.PRN, Patient_Name, Sex,Visit_Date, concat_ws('\n', Cultures, Radiology_Investigations, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
+            + "(SELECT PRN, MAX(Visit_Date) AS vd FROM discharge_summary WHERE Sex " + "LIKE '"+ gender_type +"%%' and concat(Cultures, Radiology_Investigations, Course_in_the_Hospital, History) " 
+            + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd ;")
+        else :
+            result = connection.execute("select ds.PRN, Patient_Name,Sex, Visit_Date, concat_ws('\n', Diagnosis, Advice_on_Discharge, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
+            + "(SELECT PRN, MAX(Visit_Date) AS vd FROM discharge_summary WHERE Sex " + "LIKE '"+ gender_type +"%%' and concat(Diagnosis, Advice_on_Discharge, Course_in_the_Hospital, History) " 
+            + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd ;")
+        connection.close()
+        print('-------*************************************_______________>>>', result)
+        return jsonify({'data': [dict(row) for row in result]})
+        # return self.json_response({
+        #     'data': result.fetchall()
+        # }, status=201)  
 
     @has_access_api
     @expose('/override_role_permissions/', methods=['POST'])

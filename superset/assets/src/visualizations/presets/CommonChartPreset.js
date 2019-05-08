@@ -31,6 +31,9 @@ import WordCloudChartPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
 import PinVisualizationPlugin from '../PinVisualization/PinVisualizationPlugin'
+import CustomTablePlugin from '../CustomTable/CustomTablePlugin'
+import CustomSearchPlugin from '../CustomSearch/CustomSearchPlugin'
+import CustomReportImagelugin from '../CustomReportImage/CustomReportImagePlugin'
 
 export default class CommonChartPreset extends Preset {
   constructor() {
@@ -52,7 +55,10 @@ export default class CommonChartPreset extends Preset {
         new TableChartPlugin().configure({ key: 'table' }),
         new TimeTableChartPlugin().configure({ key: 'time_table' }),
         new WordCloudChartPlugin().configure({ key: 'word_cloud' }),
-        new PinVisualizationPlugin().configure({ key: 'pin_visualization' })
+        new PinVisualizationPlugin().configure({ key: 'pin_visualization' }),
+        new CustomTablePlugin().configure({ key: 'custom_table' }),
+        new CustomSearchPlugin().configure({ key: 'custom_search' }),
+        new CustomReportImagelugin().configure({ key: 'custom_report_image' })
       ],
     });
   }
