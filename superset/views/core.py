@@ -20,16 +20,20 @@ import inspect
 import logging
 import os
 import re
+import csv
 import time
 import traceback
 from urllib import parse
 import base64
 import mysql.connector
 
+import pandas as pd
+from os.path import isfile, join
+
 from flask import (
     abort, flash, g, Markup, redirect, render_template, request, Response, url_for,
 )
-from flask import jsonify 
+from flask import jsonify, g
 
 from flask_appbuilder import expose, Model, SimpleFormView
 from flask_appbuilder.actions import action
@@ -71,6 +75,7 @@ from .base import (
     SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 from .utils import bootstrap_user_data
+from superset.views.text_extraction.main import text_extraction, data_cleaning
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -834,6 +839,64 @@ appbuilder.add_view_no_menu(R)
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
+
+    def csvtodb(self):
+        mypath = '/home/vishal/projects/incubator-superset/superset/assets/cleaned'
+        files = [f for f in os.listdir(mypath) if isfile(join(mypath, f))]
+        engine = create_engine('mysql://root:vishal123@localhost/sahyadri?charset=utf8')
+        connection = engine.connect()
+
+        for file_name in files:
+            print('filename->>>>>>>>', file_name)
+            chunks = pd.read_csv( '/home/vishal/projects/incubator-superset/superset/assets/cleaned/' + file_name, encoding = 'utf-8')
+            csv_data = chunks.to_json(orient='records')
+            records = json.loads(csv_data)
+            for data in records:
+                name = data['patient name']
+                prn = data['prn']
+                ip = data['ip no']
+
+                # age = data['age']
+                # sex = data['sex']
+                visit = data['visit']
+                visit_date = data['visit date']
+                referred_by = data['referred by']
+                sample_collected = data['sample collected']
+
+                location = data['location']
+                sample_rcvd = data['sample rcvd in lab']
+                sponsor = data['sponsor']
+                reported_on = data['reported on']
+                collected_at = data['collected at']
+                processed_at = data['processed at']
+
+                reported_on_new = datetime.strptime(reported_on.strip('"').rstrip('"'), '%d/%m/%Y %H:%M').date()
+
+                lab_no = data['lab no']
+                sample_rcvd = data['sample rcvd in lab']
+                sponsor = data['sponsor']
+                reported_on = data['reported on']
+                status = data['status']
+                specimen = data['specimen']
+
+                haemoglobin = data['haemoglobin']
+                rbc_count = data['rbc count']
+                total_wbc_count = data['total wbc count']
+                lymphocytes = data['lymphocytes']
+                platelet_count = data['platelet count']
+                smear_study = data['smear study']
+
+                # result = connection.execute("select prn from haemogram where prn = " + str(prn) + " and Reported_On = " + str(reported_on_new))
+
+                result = connection.execute("insert into haemogram (ip_no, PRN, Patient_Name, visit_date,Reported_On, Lab_No,Haemoglobin, RBC_Count, Total_WBC_Count, Platelet_Count, Lymphocytes, max_haemogram, min_haemogram, max_rbc_count, min_rbc_count) values (%s, %s, %s,%s, %s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s)", 
+                (ip, prn, name,visit_date,reported_on_new,lab_no, haemoglobin,rbc_count, total_wbc_count, platelet_count, lymphocytes, 17,13,5.5,4.5))
+
+        return "done"
+            # for chunk in chunks:
+            #     print(chunk)
+            #     print('----')
+            #     chunk.to_sql(name='haemogram', con=con, if_exists='append',index=False)
+    
     @has_access_api
     @expose('/datasources/')
     def datasources(self):
@@ -841,6 +904,37 @@ class Superset(BaseSupersetView):
         datasources = [o.short_data for o in datasources if o.short_data.get('name')]
         datasources = sorted(datasources, key=lambda o: o['name'])
         return self.json_response(datasources)
+
+    @has_access_api
+    @expose('/upload_file/', methods=['POST'])
+    def upload_file(self):
+        UPLOAD_FOLDER = '/home/vishal/projects/incubator-superset/superset/assets/images'
+        target=os.path.join(UPLOAD_FOLDER,'test_docs')
+        if not os.path.isdir(target):
+            os.mkdir(target)    
+        file = request.files['file']
+        filename = request.form.get('filename')
+        print(filename)
+        filename = secure_filename(filename)
+        destination="/".join([target, filename])
+        file.save(destination)
+        text_extraction(target)
+        data_cleaning('/home/vishal/projects/incubator-superset/superset/assets/output/')
+        self.csvtodb()
+        response="Uploaded Successfully"
+        return response
+
+    @has_access_api
+    @expose('/get_patient_card_details/', methods=['POST'])
+    def get_patient_card_details(self):
+        engine = create_engine('mysql://root:vishal123@localhost/sahyadri')
+        connection = engine.connect()
+        patient_name = request.form.get('patient_name')
+        print(patient_name)
+        print('--------->>>>>>>>>>>>')
+        result = connection.execute("SELECT rt.name, rr.report_id FROM sahyadri.patient_details as pd, sahyadri.radiology_report as rr, sahyadri.report_types as rt where pd.prn = rr.patient_prn and rr.report_id = rt.id and pd.name " + "like '"+ patient_name +"%%' group by rt.name, rr.report_id ;")
+        fields = ['label', 'value']
+        return jsonify({'data': [dict(zip(fields, d)) for d in result]})
 
     @has_access_api
     @expose('/save_viz_image/', methods=['POST'])
@@ -876,10 +970,10 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose('/get_patient_reports_details/', methods=['POST'])
     def get_patient_reports_details(self):
-        engine = create_engine('mysql://root:vishal123@localhost/sahyadri')
-        connection = engine.connect() 
-        patient_name = request.form.get('patient_name')
-        report_type = request.form.get('report_type')
+        engine = create_engine('/home/vishal/projects/incubator-superset/superset/assets/mysql://root:vishal123@localhost/sahyadri')
+        connection = engine.conn/home/vishal/projects/incubator-superset/superset/assets/ect() 
+        patient_name = request.f/home/vishal/projects/incubator-superset/superset/assets/orm.get('patient_name')
+        report_type = request.fo/home/vishal/projects/incubator-superset/superset/assets/rm.get('report_type')
         report_dates = request.form.getlist('report_dates[]')
         final_data = []
         for date in report_dates:
@@ -898,6 +992,7 @@ class Superset(BaseSupersetView):
         search_type = request.form.get('search_type')
         search_str = request.form.get('search_string')
         gender = request.form.get('gender')
+        
         # if search_type == "M" :
         #     result = connection.execute("SELECT Patient_Name, count(Patient_Name) FROM discharge_summary WHERE concat(Treatment_given, Chemotherapy, Antibiotics, Antifungals, Antivirals, Transfusion_Support, Advice_on_Discharge, Course_in_the_Hospital, History) LIKE '%%"+ search_str +"%%' group by Patient_Name")
         # elif search_type == "H":
@@ -909,6 +1004,7 @@ class Superset(BaseSupersetView):
         # else :
         #     result = connection.execute("SELECT Patient_Name, count(Patient_Name) FROM discharge_summary WHERE concat(Diagnosis, Advice_on_Discharge, Course_in_the_Hospital, History) LIKE '%%"+ search_str +"%%' group by Patient_Name")
         
+        print('------------->>>>>>', g.user.id)
         if gender == "M" :
             gender_type = "Male"
         elif gender == "F" :
@@ -919,27 +1015,38 @@ class Superset(BaseSupersetView):
             gender_type = ""
 
         if search_type == "M" :
-            result = connection.execute("select ds.PRN, Patient_Name, Sex, Visit_Date, concat_ws('\n', Treatment_given, Chemotherapy, Antibiotics, Antifungals, Antivirals, Transfusion_Support, Advice_on_Discharge, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
+            print('medicaion------------>>>>>>>>>>>>>', g.user.id)
+            print('query-->>>', "select pd.doctor_id, d.name, pd.department_id, ds.PRN,Patient_Name, Sex, Visit_Date, concat_ws('\n', Treatment_given, Chemotherapy, Antibiotics, Antifungals, Antivirals, Transfusion_Support, Advice_on_Discharge, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
             + "(SELECT PRN, MAX(Visit_Date) AS vd FROM discharge_summary WHERE Sex " + "LIKE '"+ gender_type +"%%' and concat(Treatment_given, Chemotherapy, Antibiotics, Antifungals, Antivirals, Transfusion_Support, Advice_on_Discharge, Course_in_the_Hospital, History) " 
-            + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd ;")
+            + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd inner join patient_details pd on pd.prn= ds.prn inner join doctors d on d.doctor_id = pd.doctor_id inner join departments dp on dp.id = pd.department_id where d.doctor_id ="+ str(g.user.id) + " or dp.id =" + str(g.user.id) +" ;")
+            result = connection.execute("select pd.doctor_id, d.name, pd.department_id, ds.PRN,Patient_Name, Sex, Visit_Date, concat_ws('\n', Treatment_given, Chemotherapy, Antibiotics, Antifungals, Antivirals, Transfusion_Support, Advice_on_Discharge, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
+            + "(SELECT PRN, MAX(Visit_Date) AS vd FROM discharge_summary WHERE Sex " + "LIKE '"+ gender_type +"%%' and concat(Treatment_given, Chemotherapy, Antibiotics, Antifungals, Antivirals, Transfusion_Support, Advice_on_Discharge, Course_in_the_Hospital, History) " 
+            + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd inner join patient_details pd on pd.prn= ds.prn inner join doctors d on d.doctor_id = pd.doctor_id inner join departments dp on dp.id = pd.department_id where d.doctor_id ="+ str(g.user.id) + " or dp.id =" + str(g.user.id) +" ;")
         elif search_type == "H":
+            print('h------------>>>>>>>>>>>>>')
+
             result = connection.execute("select ds.PRN, Patient_Name,  Sex,Visit_Date, concat_ws('\n', Diagnosis, Examination, Discussion, Condition_at_Discharge, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
             + "(SELECT PRN, MAX(Visit_Date) AS vd FROM discharge_summary WHERE Sex " + "LIKE '"+ gender_type +"%%' and concat(Diagnosis, Examination, Discussion, Condition_at_Discharge, Course_in_the_Hospital, History) " 
             + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd ;")
         elif search_type == "P":
+            print('p------------>>>>>>>>>>>>>')
+
             result = connection.execute("select ds.PRN, Patient_Name, Sex,Visit_Date, concat_ws('\n', Chemotherapy, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
             + "(SELECT PRN, MAX(Visit_Date) AS vd FROM discharge_summary WHERE Sex " + "LIKE '"+ gender_type +"%%' and concat(Chemotherapy, Course_in_the_Hospital, History) " 
             + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd ;")
         elif search_type == "T":
+            print('t------------>>>>>>>>>>>>>')
+            print('query---->', g.user.id)
             result = connection.execute("select ds.PRN, Patient_Name, Sex,Visit_Date, concat_ws('\n', Cultures, Radiology_Investigations, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
             + "(SELECT PRN, MAX(Visit_Date) AS vd FROM discharge_summary WHERE Sex " + "LIKE '"+ gender_type +"%%' and concat(Cultures, Radiology_Investigations, Course_in_the_Hospital, History) " 
             + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd ;")
         else :
+            print('else------------>>>>>>>>>>>>>')
+
             result = connection.execute("select ds.PRN, Patient_Name,Sex, Visit_Date, concat_ws('\n', Diagnosis, Advice_on_Discharge, Course_in_the_Hospital, History) as search_txt from discharge_summary ds join "
             + "(SELECT PRN, MAX(Visit_Date) AS vd FROM discharge_summary WHERE Sex " + "LIKE '"+ gender_type +"%%' and concat(Diagnosis, Advice_on_Discharge, Course_in_the_Hospital, History) " 
             + "LIKE '%%"+ search_str +"%%' group by PRN) grp on ds.PRN = grp.PRN and ds.Visit_Date = grp.vd ;")
         connection.close()
-        print('-------*************************************_______________>>>', result)
         return jsonify({'data': [dict(row) for row in result]})
         # return self.json_response({
         #     'data': result.fetchall()

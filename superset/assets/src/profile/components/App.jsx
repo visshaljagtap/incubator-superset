@@ -26,6 +26,7 @@ import UserInfo from './UserInfo';
 import Security from './Security';
 import RecentActivity from './RecentActivity';
 import CreatedContent from './CreatedContent';
+import UploadFiles from './UploadFiles';
 
 const propTypes = {
   user: PropTypes.object.isRequired,
@@ -46,6 +47,16 @@ export default function App(props) {
             <Tab
               eventKey={2}
               title={
+                <div><i className="fa fa-paint-brush" /> {t('Upload Files')}</div>
+              }
+            >
+              <Panel>
+                <UploadFiles user={props.user} />
+              </Panel>
+            </Tab>
+            <Tab
+              eventKey={3}
+              title={
                 <div><i className="fa fa-paint-brush" /> {t('Created Content')}</div>
               }
             >
@@ -53,12 +64,12 @@ export default function App(props) {
                 <CreatedContent user={props.user} />
               </Panel>
             </Tab>
-            <Tab eventKey={3} title={<div><i className="fa fa-list" /> {t('Recent Activity')}</div>}>
+            <Tab eventKey={4} title={<div><i className="fa fa-list" /> {t('Recent Activity')}</div>}>
               <Panel>
                 <RecentActivity user={props.user} />
               </Panel>
             </Tab>
-            <Tab eventKey={4} title={<div><i className="fa fa-lock" /> {t('Security & Access')}</div>}>
+            <Tab eventKey={5} title={<div><i className="fa fa-lock" /> {t('Security & Access')}</div>}>
               <Panel>
                 <Security user={props.user} />
               </Panel>

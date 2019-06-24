@@ -62,7 +62,7 @@ def debug_run(app, port, use_reloader):
     )
     click.secho('[example]', fg='yellow')
     click.secho(
-        'flask run -p 8080 --with-threads --reload --debugger',
+        'flask run -p ' + str(port) + '--with-threads --reload --debugger',
         fg='green',
     )
 

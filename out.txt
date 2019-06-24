@@ -1,0 +1,46 @@
+Patient: Mr. Karson Kulkarni
+PRN: 911802
+IP No.: 20766
+Age/Sex: 42 Yrs/Male
+Visit No.: IP­10
+Date: 04/01/2019
+Referred By: Dr. Shashikant Apte
+Sample Collected: 07/01/2019 04:24
+Location: Haematology General Ward(709)
+Sample Rcvd. in Lab: 07/01/2019 05:17
+Sponsor:­
+Reported On: 07/01/2019 11:23
+Collected At : Sahyadri Speciality Hospitals
+Processed At: SSL Main Lab
+Lab No.: 0003800719
+Status: Verified
+,,,,,
+,,Specimen : EDTA Whole Blood,,,
+Test Name,Test Value,UOM,Biological Reference Interval,,
+Haemoglobin,11.9,g/dL,13.0 ­ 17.0,,
+R.B.C. Count,3.89,x 10^6/ul,4.50 ­ 5.50,,
+Haematocrit,36.7,%,40.0 ­ 50.0,,
+M.C.V.,94.4,fl,76 ­ 96,,
+M.C.H,30.6,pg,27 ­ 32,,
+M.C.H.C.,32.5,gm/dl,31.5 ­ 34.5,,
+R.D.W. ­CV,19.6,%,11.6 ­ 14,,
+Total W.B.C. Count,6500,/µL,4000 ­ 10000,,
+Differential Count,,,,,
+Neutrophils,71.7,%,40.0 ­ 80.0,,
+Lymphocytes,16,%,20.0 ­ 40.0,,
+Monocytes,6.7,%,2.0 ­ 10.0,,
+Eosinophils,4.8,%,1.0 ­ 6.0,,
+Basophils,0.8,%,< 1 ­ 2,,
+Platelet Count,227000,/µL,150000 ­ 410000,,
+MPV,8.1,fl,,,
+,,,,,
+Smear Study,,Normocytic normochromic RBCs,anisocytosis 2+.,,,
+,,Platelets adequate on smear.,,,
+Performed on Beckman Coulter Haematology Analyzer.,,,,,
+,,­­­­­­­­­­­­­­­­End Of Report­­­­­­­­­­­­­­­­,,,
+,,,,,
+,,,Dr. Shital Joshi,,
+M.B.B.S, DPB,,,,,
+,,,Reg. No. : 86759,,
+Entered By:70000971,,,,,
+,,,Page 1 of 1,,

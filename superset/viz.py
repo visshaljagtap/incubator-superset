@@ -35,7 +35,7 @@ import traceback
 import uuid
 
 from dateutil import relativedelta as rdelta
-from flask import request
+from flask import request, g
 from flask_babel import lazy_gettext as _
 import geohash
 from geopy.point import Point
@@ -270,6 +270,39 @@ class BaseViz(object):
         merge_extra_filters(self.form_data)
         utils.split_adhoc_filters_into_base_filters(self.form_data)
 
+    def append_tenant_filter(self, extras):
+        try:
+            current_user = g.user
+        except Exception as e:
+            return extras
+        # if not (current_user and current_user.is_authenticated()):
+        #     return extras
+        # print('datasourceeeeeeeeeeee----------????????', current_user.id)
+
+        # # Add custom filter for non admin role only.
+        if not any([r.name in ['Admin'] for r in current_user.roles]):
+            # Fetch the custom filter from ab_user table
+            if any([r.name in ['Doctor'] for r in current_user.roles]):
+                # Fetch the custom filter for Doctor Role
+                if self.datasource.get_col('doctor_id') is not None:
+                    # print('datasourceeeeeeeeeeee----------????????', g.user.tenant_id)
+                    multi_tenant_filter = "doctor_id='{}'".format(current_user.id)
+                    extras['where'] = (multi_tenant_filter if extras['where'] == '' \
+                                else extras['where'] + ' AND ' + multi_tenant_filter)
+
+            if any([r.name in ['Department'] for r in current_user.roles]):
+                # Fetch the custom filter for Department Role
+                print('datasourceeecccccccccccceeeeeeeee----------????????', self.datasource)
+
+                if self.datasource.get_col('dep_id') is not None:
+                    print('datasourceeeeeeeeeeee----------????????', g.user.id)
+
+                    multi_tenant_filter = "dep_id='{}'".format(current_user.id)
+                    extras['where'] = (multi_tenant_filter if extras['where'] == '' \
+                                else extras['where'] + ' AND ' + multi_tenant_filter)
+
+        return extras
+
     def query_obj(self):
         """Building a query object"""
         form_data = self.form_data
@@ -321,6 +354,13 @@ class BaseViz(object):
             'time_grain_sqla': form_data.get('time_grain_sqla', ''),
             'druid_time_origin': form_data.get('druid_time_origin', ''),
         }
+
+        if config.get('ENABLE_MULTI_TENANCY'):
+            extras = self.append_tenant_filter(extras)
+
+        # multi_tenant_filter = "doctor_id='{}'".format(2)
+        # extras['where'] = (multi_tenant_filter if extras['where'] == '' \
+        #             else extras['where'] + ' AND ' + multi_tenant_filter)
 
         d = {
             'granularity': granularity,
@@ -647,6 +687,110 @@ class CustomTableViz(BaseViz):
 
     def query_obj(self):
         d = super(CustomTableViz, self).query_obj()
+        fd = self.form_data
+
+        if fd.get('all_columns') and (fd.get('groupby') or fd.get('metrics')):
+            raise Exception(_(
+                'Choose either fields to [Group By] and [Metrics] or '
+                '[Columns], not both'))
+
+        sort_by = fd.get('timeseries_limit_metric')
+        if fd.get('all_columns'):
+            d['columns'] = fd.get('all_columns')
+            d['groupby'] = []
+            order_by_cols = fd.get('order_by_cols') or []
+            d['orderby'] = [json.loads(t) for t in order_by_cols]
+        elif sort_by:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in utils.get_metric_names(d['metrics']):
+                d['metrics'] += [sort_by]
+            d['orderby'] = [(sort_by, not fd.get('order_desc', True))]
+
+        # Add all percent metrics that are not already in the list
+        if 'percent_metrics' in fd:
+            d['metrics'] = d['metrics'] + list(filter(
+                lambda m: m not in d['metrics'],
+                fd['percent_metrics'] or [],
+            ))
+
+        d['is_timeseries'] = self.should_be_timeseries()
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+        if (
+                not self.should_be_timeseries() and
+                df is not None and
+                DTTM_ALIAS in df
+        ):
+            del df[DTTM_ALIAS]
+
+        # Sum up and compute percentages for all percent metrics
+        percent_metrics = fd.get('percent_metrics') or []
+        percent_metrics = [utils.get_metric_name(m) for m in percent_metrics]
+
+        if len(percent_metrics):
+            percent_metrics = list(filter(lambda m: m in df, percent_metrics))
+            metric_sums = {
+                m: reduce(lambda a, b: a + b, df[m])
+                for m in percent_metrics
+            }
+            metric_percents = {
+                m: list(map(
+                    lambda a: None if metric_sums[m] == 0 else a / metric_sums[m], df[m]))
+                for m in percent_metrics
+            }
+            for m in percent_metrics:
+                m_name = '%' + m
+                df[m_name] = pd.Series(metric_percents[m], name=m_name)
+            # Remove metrics that are not in the main metrics list
+            metrics = fd.get('metrics') or []
+            metrics = [utils.get_metric_name(m) for m in metrics]
+            for m in filter(
+                lambda m: m not in metrics and m in df.columns,
+                percent_metrics,
+            ):
+                del df[m]
+
+        data = self.handle_js_int_overflow(
+            dict(
+                records=df.to_dict(orient='records'),
+                columns=list(df.columns),
+            ))
+
+        return data
+
+    def json_dumps(self, obj, sort_keys=False):
+        return json.dumps(
+            obj,
+            default=utils.json_iso_dttm_ser,
+            sort_keys=sort_keys,
+            ignore_nan=True)
+
+class PatientCardViz(BaseViz):
+
+    """A basic html table that is sortable and searchable"""
+
+    viz_type = 'patient_card'
+    verbose_name = _('Patient Card View')
+    is_timeseries = False
+    enforce_numerical_metrics = False
+
+    def should_be_timeseries(self):
+        fd = self.form_data
+        # TODO handle datasource-type-specific code in datasource
+        conditions_met = (
+            (fd.get('granularity') and fd.get('granularity') != 'all') or
+            (fd.get('granularity_sqla') and fd.get('time_grain_sqla'))
+        )
+        if fd.get('include_time') and not conditions_met:
+            raise Exception(_(
+                'Pick a granularity in the Time section or '
+                "uncheck 'Include Time'"))
+        return fd.get('include_time')
+
+    def query_obj(self):
+        d = super(PatientCardViz, self).query_obj()
         fd = self.form_data
 
         if fd.get('all_columns') and (fd.get('groupby') or fd.get('metrics')):

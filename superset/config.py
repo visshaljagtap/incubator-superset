@@ -76,8 +76,13 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
-# SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
+# SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
+SQLALCHEMY_DATABASE_URI = 'mysql://root:vishal123@localhost/superset_test'
+
+SQLALCHEMY_BINDS = {
+    'my_sql1': 'mysql://root:vishal123@localhost/sahyadri',
+    'my_sql2': 'mysql://root:password@externalserver.domain.com/quickhowto2'
+}
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
 # In order to hook up a custom password store for all SQLACHEMY connections
@@ -446,6 +451,9 @@ UPLOADED_CSV_HIVE_NAMESPACE = None
 # dictionary.
 JINJA_CONTEXT_ADDONS = {}
 
+ENABLE_MULTI_TENANCY = True
+# CUSTOM_SECURITY_MANAGER will not be used if ENABLE_MULTI_TENANCY
+
 # Roles that are controlled by the API / Superset and should not be changes
 # by humans.
 ROBOT_PERMISSION_ROLES = ['Public', 'Gamma', 'Alpha', 'Admin', 'sql_lab']
@@ -564,7 +572,7 @@ EMAIL_REPORT_BCC_ADDRESS = None
 # User credentials to use for generating reports
 # This user should have permissions to browse all the dashboards and
 # slices.
-# TODO: In the future, login as the owner of the item to generate reports
+# TODO: In the future, login as the owneFalser of the item to generate reports
 EMAIL_REPORTS_USER = 'admin'
 EMAIL_REPORTS_SUBJECT_PREFIX = '[Report] '
 
